@@ -2,10 +2,21 @@ name: macOS in browser
 
 on:
   workflow_dispatch:
+    inputs:
+      runner:
+        description: "Runner image — if the screen stays black, use macos-13"
+        required: true
+        default: "macos-latest"
+        type: choice
+        options:
+          - macos-latest
+          - macos-15
+          - macos-14
+          - macos-13
 
 jobs:
   mac:
-    runs-on: macos-latest
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
@@ -27,9 +38,18 @@ jobs:
           sudo createhomedir -c -u vncuser > /dev/null || true
 
           # 2. Turn on macOS built-in VNC server (Screen Sharing)
+          # NOTE: on macOS 14+ kickstart prints warnings like
+          #   "Screen recording might be disabled ... must be enabled
+          #    from System Settings or via MDM"
+          # These are EXPECTED and non-fatal: legacy VNC auth still works.
+          # If you connect and get a black/uncontrollable screen, cancel and
+          # re-run this workflow with runner = macos-13 (Intel image, fully
+          # VNC-friendly). After connecting you will see the login window —
+          # log in as vncuser with your VNC_PASSWORD.
           KS=/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart
-          sudo "$KS" -configure -allowAccessFor -allUsers -privs -all
-          sudo "$KS" -configure -clientopts -setvnclegacy -vnclegacy yes
+          sudo "$KS" -activate -configure -allowAccessFor -allUsers -privs -all
+          sudo "$KS" -configure -clientopts -setreqperm -reqperm no \
+            -setvnclegacy -vnclegacy yes -setmenuextra -menuextra no
 
           # Legacy VNC password (only way on a headless Mac)
           echo "$VNC_PASSWORD" | \
