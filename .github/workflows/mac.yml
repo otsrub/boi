@@ -1,0 +1,83 @@
+name: macOS in browser
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up real macOS desktop over VNC + browser access
+        env:
+          VNC_PASSWORD: ${{ secrets.VNC_PASSWORD }}
+        run: |
+          set -x
+
+          # 1. GUI account to log into over VNC
+          sudo dscl . -create /Users/vncuser
+          sudo dscl . -create /Users/vncuser UserShell /bin/bash
+          sudo dscl . -create /Users/vncuser RealName "VNC User"
+          sudo dscl . -create /Users/vncuser UniqueID 1001
+          sudo dscl . -create /Users/vncuser PrimaryGroupID 80
+          sudo dscl . -create /Users/vncuser NFSHomeDirectory /Users/vncuser
+          sudo dscl . -passwd /Users/vncuser "$VNC_PASSWORD" || true
+          sudo createhomedir -c -u vncuser > /dev/null || true
+
+          # 2. Turn on macOS built-in VNC server (Screen Sharing)
+          KS=/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart
+          sudo "$KS" -configure -allowAccessFor -allUsers -privs -all
+          sudo "$KS" -configure -clientopts -setvnclegacy -vnclegacy yes
+
+          # Legacy VNC password (only way on a headless Mac)
+          echo "$VNC_PASSWORD" | \
+            perl -we 'BEGIN { @k = unpack "C*", pack "H*", "1734516E8BA8C5E2FF1C39567390ADCA" };
+                      $_ = <>; chomp; s/^(.{8}).*/$1/; @p = unpack "C*", $_;
+                      foreach (@k) { printf "%02X", $_ ^ (shift @p || 0) } print "\n"' | \
+            sudo tee /Library/Preferences/com.apple.VNCSettings.txt > /dev/null
+
+          sudo "$KS" -restart -agent -console
+          sudo "$KS" -activate
+
+          # 3. Browser access: noVNC gateway on localhost:6080
+          git clone --depth 1 https://github.com/novnc/noVNC ~/noVNC
+          nohup ~/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 6080 \
+            > /tmp/novnc.log 2>&1 &
+          sleep 5
+
+      - name: Public URL via Cloudflare quick tunnel (no account needed)
+        run: |
+          brew install cloudflared
+          nohup cloudflared tunnel --url http://localhost:6080 \
+            --no-autoupdate > /tmp/cf.log 2>&1 &
+
+          URL=""
+          for i in $(seq 1 60); do
+            URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cf.log | head -1)
+            [ -n "$URL" ] && break
+            sleep 2
+          done
+          if [ -z "$URL" ]; then
+            echo "cloudflared did not print a URL; tail of log:"; tail -20 /tmp/cf.log; exit 1
+          fi
+
+          echo "=============================================================="
+          echo "  OPEN THIS IN YOUR BROWSER:  $URL/vnc.html"
+          echo "  Password: your VNC_PASSWORD secret"
+          echo "  (Login screen, if shown: user 'vncuser' / same password)"
+          echo "=============================================================="
+          {
+            echo "### Your macOS URL"
+            echo ""
+            echo "**OPEN IN BROWSER:** $URL/vnc.html"
+            echo ""
+            echo "Password: your `VNC_PASSWORD` secret. Login screen (if shown): user `vncuser`, same password."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Hold the Mac open for you
+        run: |
+          echo "Session live. This step keeps the runner alive ~5h50m."
+          echo "To end early: Actions -> this run -> Cancel workflow."
+          sleep 21000
