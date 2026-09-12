@@ -1,0 +1,20 @@
+name: M5 Max Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  m5:
+    runs-on: avrea-macos-26-8-vcpu
+
+    steps:
+      - name: Show Mac info
+        run: |
+          sw_vers
+          uname -m
+          system_profiler SPHardwareDataType
+
+      - name: Keep machine running
+        run: |
+          echo "M5 runner is alive"
+          sleep 3600
