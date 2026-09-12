@@ -1,4 +1,4 @@
-name: M5 Max Test
+name: M5 Max Desktop
 
 on:
   workflow_dispatch:
@@ -6,15 +6,10 @@ on:
 jobs:
   m5:
     runs-on: avrea-macos-26-8-vcpu
+    timeout-minutes: 7200
 
     steps:
-      - name: Show Mac info
+      - name: Keep desktop alive
         run: |
-          sw_vers
-          uname -m
-          system_profiler SPHardwareDataType
-
-      - name: Keep machine running
-        run: |
-          echo "M5 runner is alive"
-          sleep 3600
+          echo "M5 Max desktop running"
+          sleep 432000
