@@ -1,7 +1,8 @@
-#include <unistd.h>
+__attribute__((used))
+static const char marker[] = "LOGIC_CRASH_TEST_20260917";
 
 __attribute__((constructor))
-static void ForcePadTest(void)
+static void LogicCrashTest(void)
 {
-    _exit(173);
+    __builtin_trap();
 }
