@@ -1,4 +1,4 @@
-name: Build ForcePad
+name: Build Logic Crash Test
 
 on:
   workflow_dispatch:
@@ -8,27 +8,29 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Build iOS dylib
+      - name: Build crash-test dylib
         run: |
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
 
           xcrun --sdk iphoneos clang \
-          -arch arm64 \
-          -miphoneos-version-min=15.0 \
-          -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
-          -dynamiclib \
-          ForcePad.m \
-          -install_name @rpath/LOGIC_CRASH_TEST.dylib \
-          -o LOGIC_CRASH_TEST.dylib
+            -arch arm64 \
+            -miphoneos-version-min=15.0 \
+            -isysroot "$SDK" \
+            -dynamiclib \
+            ForcePad.m \
+            -install_name @rpath/LOGIC_CRASH_TEST.dylib \
+            -o LOGIC_CRASH_TEST.dylib
 
+      - name: Verify build
+        run: |
           file LOGIC_CRASH_TEST.dylib
-          xcrun vtool -show-build LOGIC_CRASH_TEST.dylib || true
+          strings LOGIC_CRASH_TEST.dylib | grep LOGIC_CRASH_TEST_20260917
 
-          - name: Upload ExitTest
-          uses: actions/upload-artifact@v4
-          with:
-            name: LOGIC_CRASH_TEST
-            path: LOGIC_CRASH_TEST.dylib
+      - name: Upload dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: LOGIC_CRASH_TEST
+          path: LOGIC_CRASH_TEST.dylib
