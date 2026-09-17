@@ -1,4 +1,4 @@
-name: Build Logic Crash Test
+name: Build Signed Logic Crash Test
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build crash-test dylib
+      - name: Build iOS dylib
         run: |
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
 
@@ -24,13 +24,30 @@ jobs:
             -install_name @rpath/LOGIC_CRASH_TEST.dylib \
             -o LOGIC_CRASH_TEST.dylib
 
-      - name: Verify build
+      - name: Ad-hoc sign dylib
         run: |
+          codesign \
+            --force \
+            --sign - \
+            --timestamp=none \
+            LOGIC_CRASH_TEST.dylib
+
+      - name: Verify signature
+        run: |
+          echo "=== FILE ==="
           file LOGIC_CRASH_TEST.dylib
+
+          echo "=== CODE SIGNATURE ==="
+          codesign -dvvv LOGIC_CRASH_TEST.dylib
+
+          echo "=== VERIFY ==="
+          codesign --verify --verbose=4 LOGIC_CRASH_TEST.dylib
+
+          echo "=== TEST MARKER ==="
           strings LOGIC_CRASH_TEST.dylib | grep LOGIC_CRASH_TEST_20260917
 
-      - name: Upload dylib
+      - name: Upload signed dylib
         uses: actions/upload-artifact@v4
         with:
-          name: LOGIC_CRASH_TEST
+          name: LOGIC_CRASH_TEST_SIGNED
           path: LOGIC_CRASH_TEST.dylib
