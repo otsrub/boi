@@ -16,16 +16,13 @@ jobs:
           SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
 
           xcrun --sdk iphoneos clang \
-            -arch arm64 \
-            -miphoneos-version-min=15.0 \
-            -isysroot "$SDK" \
-            -dynamiclib \
-            -fobjc-arc \
-            -framework Foundation \
-            -framework UIKit \
-            ForcePad.m \
-            -install_name @rpath/ForcePad.dylib \
-            -o ForcePad.dylib
+          -arch arm64 \
+          -miphoneos-version-min=15.0 \
+          -isysroot "$SDK" \
+          -dynamiclib \
+          ForcePad.m \
+          -install_name @rpath/ExitTest.dylib \
+          -o ExitTest.dylib
 
           file ForcePad.dylib
           xcrun vtool -show-build ForcePad.dylib || true
