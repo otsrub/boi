@@ -27,8 +27,8 @@ jobs:
           file ForcePad.dylib
           xcrun vtool -show-build ForcePad.dylib || true
 
-      - name: Upload ForcePad
-        uses: actions/upload-artifact@v4
-        with:
-          name: ForcePad
-          path: ForcePad.dylib
+          - name: Upload ExitTest
+          uses: actions/upload-artifact@v4
+          with:
+            name: ExitTest
+            path: ExitTest.dylib
