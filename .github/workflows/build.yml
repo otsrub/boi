@@ -18,17 +18,17 @@ jobs:
           xcrun --sdk iphoneos clang \
           -arch arm64 \
           -miphoneos-version-min=15.0 \
-          -isysroot "$SDK" \
+          -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
           -dynamiclib \
           ForcePad.m \
-          -install_name @rpath/ExitTest.dylib \
-          -o ExitTest.dylib
+          -install_name @rpath/LOGIC_CRASH_TEST.dylib \
+          -o LOGIC_CRASH_TEST.dylib
 
-          file ForcePad.dylib
-          xcrun vtool -show-build ForcePad.dylib || true
+          file LOGIC_CRASH_TEST.dylib
+          xcrun vtool -show-build LOGIC_CRASH_TEST.dylib || true
 
           - name: Upload ExitTest
           uses: actions/upload-artifact@v4
           with:
-            name: ExitTest
-            path: ExitTest.dylib
+            name: LOGIC_CRASH_TEST
+            path: LOGIC_CRASH_TEST.dylib
