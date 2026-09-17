@@ -1,0 +1,37 @@
+name: Build ForcePad
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build iOS dylib
+        run: |
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+
+          xcrun --sdk iphoneos clang \
+            -arch arm64 \
+            -miphoneos-version-min=15.0 \
+            -isysroot "$SDK" \
+            -dynamiclib \
+            -fobjc-arc \
+            -framework Foundation \
+            -framework UIKit \
+            ForcePad.m \
+            -install_name @rpath/ForcePad.dylib \
+            -o ForcePad.dylib
+
+          file ForcePad.dylib
+          xcrun vtool -show-build ForcePad.dylib || true
+
+      - name: Upload ForcePad
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForcePad
+          path: ForcePad.dylib
